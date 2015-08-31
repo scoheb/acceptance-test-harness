@@ -30,9 +30,7 @@ import org.jenkinsci.test.acceptance.plugins.gerrit_trigger.GerritTriggerEnv;
 import org.jenkinsci.test.acceptance.plugins.gerrit_trigger.GerritTriggerJob;
 import org.jenkinsci.test.acceptance.plugins.gerrit_trigger.GerritTriggerNewServer;
 import org.jenkinsci.test.acceptance.plugins.gerrit_trigger.GerritTriggerServer;
-import org.jenkinsci.test.acceptance.po.Build;
 import org.jenkinsci.test.acceptance.po.FreeStyleJob;
-import org.jenkinsci.test.acceptance.po.Job;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -92,7 +90,7 @@ public class GerritTriggerTest extends AbstractJUnitTest {
      */
     @Test
     public void gerrit_has_review_flags_checked_after_jenkins_set_them() {
-        assumeTrue(new File(GerritTriggerEnv.get().getUserHome(), ".netrc").exists());
+        assumeTrue(new File(GerritTriggerEnv.get().getUserHome(),".netrc").exists());
 
         GerritTriggerNewServer newServer = new GerritTriggerNewServer(jenkins);
         newServer.saveNewTestServerConfigIfNone();
@@ -102,40 +100,40 @@ public class GerritTriggerTest extends AbstractJUnitTest {
         String jobName = this.getClass().getCanonicalName();
         jenkins.jobs.create(FreeStyleJob.class, jobName);//no harm if existing
         GerritTriggerJob job = new GerritTriggerJob(jenkins, jobName);
-        job.saveTestJobConfig(GerritTriggerJob.EventToTriggerOn.PatchsetCreated);
+        job.saveTestJobConfig();
         try {
-            String changeId = pushChangeForReview(jobName).changeId;
+            String changeId = pushChangeForReview(jobName);
             elasticSleep(10000);
             String rev = readJson(curl(changeId));
             logCurlHttpCodeIssues(rev);
 
-            checkLabelValueFromJSON(rev, "Verified", 1);
-            checkLabelValueFromJSON(rev, "Code-Review", 1);
+            checkLabelValueFromJSON(rev, "Verified");
+            checkLabelValueFromJSON(rev, "Code-Review");
         }
         catch(InterruptedException|IOException e) {
             fail(e.getMessage());
         }
     }
 
-    private void checkLabelValueFromJSON(String json, String labelName, int value) {
+    private void checkLabelValueFromJSON(String json, String labelName) {
         try {
             JSONObject obj = new JSONObject(json);
             JSONArray allArray = obj.getJSONObject("labels").getJSONObject(labelName).getJSONArray("all");
             boolean foundValue = false;
             for (int i = 0; i < allArray.length(); i++) {
                 JSONObject testObj = allArray.getJSONObject(i);
-                if (testObj.has("value") && testObj.getInt("value") == value) {
+                if (testObj.has("value") && testObj.getInt("value") == 1) {
                     foundValue = true;
                     break;
                 }
             }
-            assertTrue(labelName + " flag should be " + value, foundValue);
+            assertTrue(labelName + " flag should be " + 1, foundValue);
         } catch (JSONException e) {
             fail(e.getMessage());
         }
     }
 
-    private GitLogResult pushChangeForReview(String jobName) throws InterruptedException,IOException {
+    private String pushChangeForReview(String jobName) throws InterruptedException,IOException {
         File dir = File.createTempFile("jenkins","git");
         dir.delete();//result !needed
         assertTrue(dir.mkdir());
@@ -162,12 +160,7 @@ public class GerritTriggerTest extends AbstractJUnitTest {
         assertThat(logProcessBuilderIssues(new ProcessBuilder("git", "push", "origin", "HEAD:refs/for/master").directory(dir), "git push").exitValue(), is(equalTo(0)));
 
         ProcessBuilder gitLog1Pb = new ProcessBuilder("git","log","-1").directory(dir);
-        String output = stringFrom(logProcessBuilderIssues(gitLog1Pb, "git log"));
-
-        GitLogResult gitLogResult = new GitLogResult();
-        gitLogResult.changeId = valueFrom(output,".+Change-Id:(.+)");
-        gitLogResult.commitId = output.substring(6, 17);
-        return gitLogResult;
+        return valueFrom(stringFrom(logProcessBuilderIssues(gitLog1Pb, "git log")),".+Change-Id:(.+)");
     }
 
     private Process curl(String changeId) throws IOException, InterruptedException {
@@ -202,8 +195,7 @@ public class GerritTriggerTest extends AbstractJUnitTest {
         assertThat(curl.waitFor(), is(equalTo(0)));
         StringWriter writer = new StringWriter();
         IOUtils.copy(curl.getInputStream(), writer);
-        String string = writer.toString().replaceAll(System.getProperty("line.separator"),
-            "").replaceAll(" ", "");
+        String string = writer.toString().replaceAll(System.getProperty("line.separator"), "").replaceAll(" ", "");
         writer.close();
         return string;
     }
@@ -240,133 +232,8 @@ public class GerritTriggerTest extends AbstractJUnitTest {
 
         String responseCode = lines[lines.length-1];
         if (!responseCode.matches("2[0-9][0-9]")) {
-            LOGGER.severe(
-                "Issue occurred during curl command. Returned an erroneous http response code: "
-                    + responseCode + ".\n" + "Expected 2XX response code.");
+            LOGGER.severe("Issue occurred during curl command. Returned an erroneous http response code: " + responseCode + ".\n"
+                    + "Expected 2XX response code.");
         }
-    }
-
-    /**
-     * Scenario: build is triggered after ref is updated<br>
-     * Given a Jenkins instance<br>
-     * And a gerrit-trigger plugin<br>
-     * And an existing Gerrit instance configured in that Jenkins<br>
-     * When I push a Change to Gerrit<br>
-     * Then Jenkins does build it successfully indeed<br>
-     */
-    @Test
-    public void build_is_triggered_after_ref_is_updated() {
-        GerritTriggerNewServer newServer = new GerritTriggerNewServer(jenkins);
-        newServer.saveNewTestServerConfigIfNone();
-        GerritTriggerServer server = new GerritTriggerServer(jenkins);
-
-        server.saveTestServerConfig();
-
-        String jobName = this.getClass().getCanonicalName();
-        Job jenkinsJob = jenkins.jobs.create(FreeStyleJob.class, jobName);//no harm if existing
-        GerritTriggerJob job = new GerritTriggerJob(jenkins, jobName);
-
-        job.saveTestJobConfig(GerritTriggerJob.EventToTriggerOn.RefUpdated);
-
-        try {
-            pushChangeToGerritNotForReview(jobName);
-            elasticSleep(10000);
-            Build lastBuild = jenkinsJob.getLastBuild();
-            lastBuild.isSuccess();
-        }
-        catch(InterruptedException|IOException e) {
-            fail(e.getMessage());
-        }
-
-    }
-
-    private String pushChangeToGerritNotForReview(String jobName) throws InterruptedException,IOException {
-        File dir = File.createTempFile("jenkins","git");
-        dir.delete();//result !needed
-        assertTrue(dir.mkdir());
-        String user = GerritTriggerEnv.get().getGerritUser();
-        String hostName = GerritTriggerEnv.get().getHostName();
-        String project = GerritTriggerEnv.get().getProject();
-
-        assertThat(logProcessBuilderIssues(new ProcessBuilder("git", "clone",
-                "ssh://" + user + "@" + hostName + ":29418/" + project, jobName).directory(dir),
-            "git clone").exitValue(), is(equalTo(0)));
-
-        File file = new File(dir+"/"+jobName,jobName);
-        file.delete();//result !needed
-        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-        writer.write(String.valueOf(System.currentTimeMillis()));
-        writer.close();
-        dir = file.getParentFile();
-
-        assertThat(logProcessBuilderIssues(new ProcessBuilder("git", "add", jobName).directory(dir),
-            "git add").exitValue(), is(equalTo(0)));
-        File hooksDir = new File(dir,".git/hooks/");
-        if (!hooksDir.exists()) {
-            assertTrue(hooksDir.mkdir());
-        }
-
-        assertThat(logProcessBuilderIssues(new ProcessBuilder("scp", "-p", "-P", "29418",
-                user + "@" + hostName + ":hooks/commit-msg", ".git/hooks/").directory(dir),
-            "scp commit-msg").exitValue(), is(equalTo(0)));
-        assertThat(logProcessBuilderIssues(
-            new ProcessBuilder("git", "commit", "-m", jobName).directory(dir), "git commit")
-            .exitValue(), is(equalTo(0)));
-        assertThat(logProcessBuilderIssues(
-            new ProcessBuilder("git", "push", "origin", "master:master").directory(dir), "git push")
-            .exitValue(), is(equalTo(0)));
-
-        ProcessBuilder gitLog1Pb = new ProcessBuilder("git","log","-1").directory(dir);
-        return valueFrom(stringFrom(logProcessBuilderIssues(gitLog1Pb, "git log")),".+Change-Id:(.+)");
-    }
-
-    /**
-     * Scenario: build is triggered after comment is added<br>
-     * Given a Jenkins instance<br>
-     * And a gerrit-trigger plugin<br>
-     * And an existing Gerrit instance configured in that Jenkins<br>
-     * When I add a comment to a code review<br>
-     * Then Jenkins does build it successfully indeed<br>
-     */
-    @Test
-    public void build_is_triggered_after_comment_is_added() {
-        assumeTrue(new File(GerritTriggerEnv.get().getUserHome(),".netrc").exists());
-
-        GerritTriggerNewServer newServer = new GerritTriggerNewServer(jenkins);
-        newServer.saveNewTestServerConfigIfNone();
-        GerritTriggerServer server = new GerritTriggerServer(jenkins);
-        server.saveTestServerConfig();
-
-        String jobName = this.getClass().getCanonicalName();
-        jenkins.jobs.create(FreeStyleJob.class, jobName);//no harm if existing
-        GerritTriggerJob job = new GerritTriggerJob(jenkins, jobName);
-        job.saveTestJobConfig(GerritTriggerJob.EventToTriggerOn.CommentAdded);
-        try {
-            GitLogResult gitLogResult = pushChangeForReview(jobName);
-            addComment(gitLogResult.commitId);
-            elasticSleep(10000);
-            String rev = readJson(curl(gitLogResult.changeId));
-            logCurlHttpCodeIssues(rev);
-
-            checkLabelValueFromJSON(rev, "Verified", 1);
-            checkLabelValueFromJSON(rev, "Code-Review", -2);
-        }
-        catch(InterruptedException|IOException e) {
-            fail(e.getMessage());
-        }
-    }
-
-
-    private void addComment(String commitId) throws InterruptedException,IOException {
-        String user = GerritTriggerEnv.get().getGerritUser();
-        String hostName = GerritTriggerEnv.get().getHostName();
-        assertThat(logProcessBuilderIssues(new ProcessBuilder("ssh", "-p", "29418",
-                user + "@" + hostName, "gerrit", "review", "--code-review", "-2", commitId),
-            "ssh gerrit --code-review").exitValue(), is(equalTo(0)));
-    }
-
-    private class GitLogResult {
-        private String commitId;
-        private String changeId;
     }
 }
