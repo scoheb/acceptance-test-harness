@@ -65,7 +65,7 @@ public class GerritTriggerJob extends PageObject {
 
         String displayName = eventToTriggerOn.getDisplayName();
         switch (eventToTriggerOn) {
-            case PatchsetCreated: case RefUpdated:
+            case PatchsetCreated: case RefUpdated: case ChangeMerged: case DraftPublished:
                 triggerOnAdd.selectDropdownMenu(displayName);
                 break;
 
