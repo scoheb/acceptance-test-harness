@@ -46,8 +46,7 @@ public class GerritTriggerJob extends PageObject {
     public final Control project = control("/com-sonyericsson-hudson-plugins-gerrit-trigger-hudsontrigger-GerritTrigger/gerritProjects/pattern");
     public final Control branch = control("/com-sonyericsson-hudson-plugins-gerrit-trigger-hudsontrigger-GerritTrigger/gerritProjects/branches/pattern");
     public final Control triggerOnAdd = control("/com-sonyericsson-hudson-plugins-gerrit-trigger-hudsontrigger-GerritTrigger/hetero-list-add[triggerOnEvents]");
-    private final String commentAddedTriggerVerdictCategoryPath = "/com-sonyericsson-hudson-plugins-gerrit-trigger-hudsontrigger-GerritTrigger/triggerOnEvents/verdictCategory";
-    public final Control commentAddedTriggerVerdictCategory = control(commentAddedTriggerVerdictCategoryPath);
+    public final Control commentAddedTriggerVerdictCategory = control("/com-sonyericsson-hudson-plugins-gerrit-trigger-hudsontrigger-GerritTrigger/triggerOnEvents/verdictCategory");
     public final Control commentAddedTriggerApprovalValue = control("/com-sonyericsson-hudson-plugins-gerrit-trigger-hudsontrigger-GerritTrigger/triggerOnEvents/commentAddedTriggerApprovalValue");
 
     public GerritTriggerJob(Jenkins jenkins,String jobName) {
@@ -71,11 +70,7 @@ public class GerritTriggerJob extends PageObject {
 
             case CommentAdded:
                 triggerOnAdd.selectDropdownMenu(displayName);
-                commentAddedTriggerVerdictCategory.click();
-                // select "Code-Review" on dropdown menu
-                Select select = new Select(commentAddedTriggerVerdictCategory.find(by.path(commentAddedTriggerVerdictCategoryPath)));
-                select.selectByValue("Code-Review");
-                elasticSleep(1000);
+                commentAddedTriggerVerdictCategory.select("Code-Review");
                 commentAddedTriggerApprovalValue.set("-2");
                 break;
 

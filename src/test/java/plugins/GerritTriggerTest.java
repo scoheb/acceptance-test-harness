@@ -49,7 +49,6 @@ import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -325,7 +324,7 @@ public class GerritTriggerTest extends AbstractJUnitTest {
             logCurlHttpCodeIssues(rev);
 
             checkLabelValueFromJSON(rev, "Verified", 1);
-            checkLabelValueFromJSON(rev, "Code-Review", -2);
+            checkLabelValueFromJSON(rev, "Code-Review", 1);
         }
         catch(InterruptedException|IOException e) {
             fail(e.getMessage());

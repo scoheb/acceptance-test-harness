@@ -78,7 +78,7 @@ public class GerritTriggerServer extends PageObject {
         } catch (NoSuchElementException e) {
             add.click();
             codeReview.set("Code-Review");
-            codeReviewD.set("Code Review");
+            codeReviewD.set("New Code Review");
             add.click();
             verified.set("Verified");
             verifiedD.set("Verified");
