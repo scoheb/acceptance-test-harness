@@ -25,6 +25,7 @@ package plugins;
 
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
+import org.jenkinsci.test.acceptance.junit.TestActivation;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
 import org.jenkinsci.test.acceptance.plugins.gerrit_trigger.GerritTriggerEnv;
 import org.jenkinsci.test.acceptance.plugins.gerrit_trigger.GerritTriggerJob;
@@ -39,6 +40,8 @@ import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.inject.Inject;
+
 import java.io.*;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
@@ -46,6 +49,8 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.inject.Named;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -67,12 +72,16 @@ import static org.junit.Assume.assumeTrue;
  * @author Marco.Miller@ericsson.com
  */
 @WithPlugins("gerrit-trigger")
+@TestActivation({"gtUser", "gtHostname", "gtProject", "gtUserhome", "gtNoProxyForHost"})
 public class GerritTriggerTest extends AbstractJUnitTest {
     private static final Logger LOGGER = Logger.getLogger(GerritTriggerTest.class.getName());
 
-    private static final String USER = GerritTriggerEnv.get().getGerritUser();
-    private static final String HOST_NAME = GerritTriggerEnv.get().getHostName();
-    private static final String PROJECT = GerritTriggerEnv.get().getProject();
+    @Inject(optional = true) @Named("gtUser") public static String USER;
+    @Inject(optional = true) @Named("gtHostname") public static String HOST_NAME;
+    @Inject(optional = true) @Named("gtProject") public static String PROJECT;
+    @Inject(optional = true) @Named("gtUserhome") public static String USER_HOME;
+    @Inject(optional = true) @Named("gtNoProxyForHost") public static boolean NO_PROXY;
+
     @Before
     public void setUpLogger() {
         LOGGER.setLevel(Level.ALL);
@@ -95,7 +104,7 @@ public class GerritTriggerTest extends AbstractJUnitTest {
      */
     @Test
     public void gerrit_has_review_flags_checked_after_jenkins_set_them() {
-        assumeTrue(new File(GerritTriggerEnv.get().getUserHome(), ".netrc").exists());
+        assumeTrue(new File(USER_HOME, ".netrc").exists());
 
         GerritTriggerNewServer newServer = new GerritTriggerNewServer(jenkins);
         newServer.saveNewTestServerConfigIfNone();
@@ -176,9 +185,9 @@ public class GerritTriggerTest extends AbstractJUnitTest {
     }
 
     private Process curl(String changeId) throws IOException, InterruptedException {
-        String hN = GerritTriggerEnv.get().getHostName();
+        String hN = HOST_NAME;
         ProcessBuilder curlProcess;
-        if(GerritTriggerEnv.get().getNoProxy()) {
+        if(NO_PROXY) {
             curlProcess = new ProcessBuilder("curl","-w","%{http_code}","--noproxy",hN,"-n","https://"+hN+"/a/changes/"+changeId+"/revisions/current/review");
             return logProcessBuilderIssues(curlProcess, "curl");
         }
@@ -305,7 +314,7 @@ public class GerritTriggerTest extends AbstractJUnitTest {
      */
     @Test
     public void build_is_triggered_after_comment_is_added() {
-        assumeTrue(new File(GerritTriggerEnv.get().getUserHome(),".netrc").exists());
+        assumeTrue(new File(USER_HOME,".netrc").exists());
 
         GerritTriggerNewServer newServer = new GerritTriggerNewServer(jenkins);
         newServer.saveNewTestServerConfigIfNone();
@@ -341,7 +350,7 @@ public class GerritTriggerTest extends AbstractJUnitTest {
      */
     @Test
     public void gerrit_trigger_build_when_draft_published() {
-        assumeTrue(new File(GerritTriggerEnv.get().getUserHome(),".netrc").exists());
+        assumeTrue(new File(USER_HOME,".netrc").exists());
 
         GerritTriggerNewServer newServer = new GerritTriggerNewServer(jenkins);
         newServer.saveNewTestServerConfigIfNone();
@@ -389,7 +398,7 @@ public class GerritTriggerTest extends AbstractJUnitTest {
      */
     @Test
     public void gerrit_trigger_build_when_changes_merged() {
-        assumeTrue(new File(GerritTriggerEnv.get().getUserHome(), ".netrc").exists());
+        assumeTrue(new File(USER_HOME, ".netrc").exists());
 
         GerritTriggerNewServer newServer = new GerritTriggerNewServer(jenkins);
         newServer.saveNewTestServerConfigIfNone();

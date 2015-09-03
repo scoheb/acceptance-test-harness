@@ -28,6 +28,8 @@ import org.jenkinsci.test.acceptance.po.Jenkins;
 import org.jenkinsci.test.acceptance.po.PageObject;
 import org.openqa.selenium.NoSuchElementException;
 
+import plugins.GerritTriggerTest;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -68,10 +70,10 @@ public class GerritTriggerServer extends PageObject {
      */
     public void saveTestServerConfig() {
         open();
-        hostName.set(GerritTriggerEnv.get().getHostName());
-        feUrl.set("https://"+GerritTriggerEnv.get().getHostName());
-        userName.set(GerritTriggerEnv.get().getGerritUser());
-        keyFile.set(GerritTriggerEnv.get().getUserHome()+"/.ssh/id_rsa");
+        hostName.set(GerritTriggerTest.HOST_NAME);
+        feUrl.set("https://"+GerritTriggerTest.HOST_NAME);
+        userName.set(GerritTriggerTest.USER);
+        keyFile.set(GerritTriggerTest.USER_HOME+"/.ssh/id_rsa");
         advanced.click();
         try {
             codeReview.resolve();
