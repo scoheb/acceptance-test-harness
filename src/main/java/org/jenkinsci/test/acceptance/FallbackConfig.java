@@ -149,8 +149,8 @@ public class FallbackConfig extends AbstractModule {
     public WebDriver createWebDriver(TestCleaner cleaner, TestName testName, ElasticTime time) throws IOException {
         WebDriver base = createWebDriver(testName);
         Dimension oldSize = base.manage().window().getSize();
-        if (oldSize.height < 768 || oldSize.width < 1024) {
-            base.manage().window().setSize(new Dimension(1024, 768));
+	if (oldSize.height < 960 || oldSize.width < 1280) {
+            base.manage().window().setSize(new Dimension(1280, 960));
         }
 
         final EventFiringWebDriver d = new EventFiringWebDriver(base);

@@ -2,10 +2,13 @@
 # Runs sshd and allow the 'test' user to login
 #
 
-FROM ubuntu:xenial
+#FROM ubuntu:xenial
+FROM docker.io/fedora
 
 # install SSHD
-RUN apt-get update -y && apt-get install -y openssh-server
+#RUN apt-get update -y && apt-get install -y openssh-server
+RUN dnf -y update && dnf -y install openssh-server passwd && dnf clean all
+
 RUN mkdir -p /var/run/sshd
 
 # create a test user
@@ -17,6 +20,8 @@ RUN useradd test -d /home/test && \
     chmod 0600 /home/test/.ssh/authorized_keys && \
     echo "test:test" | chpasswd
 
+RUN /usr/bin/ssh-keygen -A
+RUN sed -i 's|#LogLevel INFO|LogLevel VERBOSE|g' /etc/ssh/sshd_config
 
 # run SSHD in the foreground with error messages to stderr
 ENTRYPOINT ["/usr/sbin/sshd", "-D", "-e"]
