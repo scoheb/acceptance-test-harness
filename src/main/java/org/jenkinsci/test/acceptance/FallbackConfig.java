@@ -151,11 +151,11 @@ public class FallbackConfig extends AbstractModule {
 
         // Make sue the window have minimal resolution set, even when out of the visible screen. Try maximizing first so
         // it has a chance to fit the screen nicely if big enough.
-        base.manage().window().maximize();
         Dimension oldSize = base.manage().window().getSize();
         if (oldSize.height < 960 || oldSize.width < 1280) {
             base.manage().window().setSize(new Dimension(1280, 960));
         }
+        base.manage().window().maximize();
 
         final EventFiringWebDriver d = new EventFiringWebDriver(base);
         d.register(new SanityChecker());
