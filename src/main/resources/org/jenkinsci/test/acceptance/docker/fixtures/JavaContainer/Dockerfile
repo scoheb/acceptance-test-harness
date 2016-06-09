@@ -29,4 +29,4 @@ ENTRYPOINT ["/usr/sbin/sshd", "-D", "-e"]
 #RUN add-apt-repository ppa:openjdk-r/ppa
 #RUN apt-get update
 #RUN apt-get install --no-install-recommends -y openjdk-8-jdk openjdk-7-jdk curl wget ant maven
-RUN dnf -y install java-1.8.0-openjdk java-1.8.0-openjdk-devel java-1.8.0-openjdk-headless curl wget ant maven
+RUN yum -y install java-1.8.0-openjdk java-1.8.0-openjdk-devel java-1.8.0-openjdk-headless curl wget ant maven
