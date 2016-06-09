@@ -7,7 +7,7 @@ FROM docker.io/fedora:20
 
 # install SSHD
 #RUN apt-get update -y && apt-get install -y openssh-server
-RUN dnf -y update && dnf -y install openssh-server passwd && dnf clean all
+RUN yum -y update && yum -y install openssh-server passwd
 
 RUN mkdir -p /var/run/sshd
 
