@@ -3,8 +3,12 @@
 #
 
 # TODO have to inline SshdContainer/Dockerfile since 'FROM jenkins/sshd' does not work: jenkins/sshd is not pushed to the Docker registry, so we cannot build against it
-FROM ubuntu
-RUN apt-get update && apt-get install -y openssh-server
+#FROM ubuntu
+FROM docker.io/fedora
+
+##RUN apt-get update && apt-get install -y openssh-server
+RUN dnf -y update && dnf -y install openssh-server passwd && dnf clean all
+
 RUN mkdir -p /var/run/sshd
 RUN useradd test -d /home/test && \
     mkdir -p /home/test/.ssh && \
@@ -13,11 +17,16 @@ RUN useradd test -d /home/test && \
     chown -R test:test /home/test && \
     chmod 0600 /home/test/.ssh/authorized_keys && \
     echo "test:test" | chpasswd
+
+RUN /usr/bin/ssh-keygen -A
+RUN sed -i 's|#LogLevel INFO|LogLevel VERBOSE|g' /etc/ssh/sshd_config
+
 ENTRYPOINT ["/usr/sbin/sshd", "-D", "-e"]
 
 # JDK is from Universe
-RUN echo deb http://archive.ubuntu.com/ubuntu precise universe >> /etc/apt/sources.list
-RUN apt-get install --no-install-recommends -y software-properties-common
-RUN add-apt-repository ppa:openjdk-r/ppa
-RUN apt-get update
-RUN apt-get install --no-install-recommends -y openjdk-8-jdk openjdk-7-jdk curl wget ant maven
+#RUN echo deb http://archive.ubuntu.com/ubuntu precise universe >> /etc/apt/sources.list
+#RUN apt-get install --no-install-recommends -y software-properties-common
+#RUN add-apt-repository ppa:openjdk-r/ppa
+#RUN apt-get update
+#RUN apt-get install --no-install-recommends -y openjdk-8-jdk openjdk-7-jdk curl wget ant maven
+RUN dnf -y install java-1.8.0-openjdk java-1.8.0-openjdk-devel java-1.8.0-openjdk-headless curl wget ant maven
