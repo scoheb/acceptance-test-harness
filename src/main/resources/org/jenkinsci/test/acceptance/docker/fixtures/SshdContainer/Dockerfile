@@ -3,7 +3,7 @@
 #
 
 #FROM ubuntu:xenial
-FROM docker.io/fedora:23
+FROM docker.io/fedora:20
 
 # install SSHD
 #RUN apt-get update -y && apt-get install -y openssh-server

@@ -4,7 +4,7 @@
 
 # TODO have to inline SshdContainer/Dockerfile since 'FROM jenkins/sshd' does not work: jenkins/sshd is not pushed to the Docker registry, so we cannot build against it
 #FROM ubuntu
-FROM docker.io/fedora:23
+FROM docker.io/fedora:20
 
 ##RUN apt-get update && apt-get install -y openssh-server
 RUN dnf -y update && dnf -y install openssh-server passwd && dnf clean all
