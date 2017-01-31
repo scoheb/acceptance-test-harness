@@ -1,41 +1,65 @@
 package plugins;
 
 import com.google.inject.Inject;
+import org.jenkinsci.test.acceptance.docker.DockerContainerHolder;
+import org.jenkinsci.test.acceptance.docker.fixtures.XvncSlaveContainer;
 import org.jenkinsci.test.acceptance.junit.AbstractJUnitTest;
 import org.jenkinsci.test.acceptance.junit.DockerTest;
+import org.jenkinsci.test.acceptance.junit.WithDocker;
 import org.jenkinsci.test.acceptance.junit.WithPlugins;
+import org.jenkinsci.test.acceptance.plugins.ssh_slaves.SshSlaveLauncher;
 import org.jenkinsci.test.acceptance.plugins.xvnc.XvncGlobalJobConfig;
 import org.jenkinsci.test.acceptance.plugins.xvnc.XvncJobConfig;
 import org.jenkinsci.test.acceptance.po.Build;
+import org.jenkinsci.test.acceptance.po.DumbSlave;
 import org.jenkinsci.test.acceptance.po.FreeStyleJob;
+import org.jenkinsci.test.acceptance.po.WorkflowJob;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.jvnet.hudson.test.Issue;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import org.jenkinsci.test.acceptance.docker.DockerContainerHolder;
-import org.jenkinsci.test.acceptance.docker.fixtures.XvncSlaveContainer;
-import org.jenkinsci.test.acceptance.junit.WithDocker;
-import static org.jenkinsci.test.acceptance.plugins.xvnc.XvncJobConfig.*;
-import org.jenkinsci.test.acceptance.po.Slave;
-import org.jenkinsci.test.acceptance.po.WorkflowJob;
-import org.junit.experimental.categories.Category;
-import org.jvnet.hudson.test.Issue;
+import static org.jenkinsci.test.acceptance.plugins.xvnc.XvncJobConfig.runXvnc;
+import static org.jenkinsci.test.acceptance.plugins.xvnc.XvncJobConfig.tookScreenshot;
+import static org.jenkinsci.test.acceptance.plugins.xvnc.XvncJobConfig.usedDisplayNumber;
 
 @WithPlugins({"xvnc", "ssh-slaves"})
 @Category(DockerTest.class)
 @WithDocker
 public class XvncPluginTest extends AbstractJUnitTest {
 
-    @Inject DockerContainerHolder<XvncSlaveContainer> containerHolder;
+    public static final String REMOTE_FS = "/tmp";
 
-    @Before
-    public void setUp() {
-        Slave slave = containerHolder.get().connect(jenkins);
+    @Inject DockerContainerHolder<XvncSlaveContainer> docker;
+
+    private XvncSlaveContainer sshd;
+    private DumbSlave slave;
+
+    @Before public void setUp() {
+        sshd = docker.get();
+
+        slave = jenkins.slaves.create(DumbSlave.class);
+        slave.setExecutors(1);
         slave.setLabels("xvnc");
+        slave.remoteFS.set(REMOTE_FS);
+        configureDefaultSSHSlaveLauncher()
+                .pwdCredentials("test", "test");
         slave.save();
     }
-    
+
+    private SshSlaveLauncher configureDefaultSSHSlaveLauncher() {
+        return configureSSHSlaveLauncher(sshd.ipBound(22), sshd.port(22));
+    }
+
+    private SshSlaveLauncher configureSSHSlaveLauncher(String host, int port) {
+        SshSlaveLauncher launcher = slave.setLauncher(SshSlaveLauncher.class);
+        launcher.host.set(host);
+        launcher.port(port);
+        return launcher;
+    }
+
     private FreeStyleJob createJob() {
         FreeStyleJob job = jenkins.jobs.create(FreeStyleJob.class);
         job.configure();

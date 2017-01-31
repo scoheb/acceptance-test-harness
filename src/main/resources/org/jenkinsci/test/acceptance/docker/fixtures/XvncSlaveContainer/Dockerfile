@@ -1,5 +1,26 @@
-FROM evarga/jenkins-slave
-RUN apt-get update && apt-get install -y vnc4server imagemagick
+#
+# Runs sshd and allow the 'test' user to login
+#
+
+FROM ubuntu
+
+# install SSHD
+RUN apt-get update -y && apt-get install -y openssh-server vnc4server imagemagick
+
+RUN mkdir -p /var/run/sshd
+
+# create a test user
+RUN useradd test -d /home/test && \
+    mkdir -p /home/test/.ssh && \
+    echo 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDzpxmTW9mH87DMkMSqBrSecoSHVCkKbW5IOO+4unak8M8cyn+b0iX07xkBn4hUJRfKA7ezUG8EX9ru5VinteqMOJOPknCuzmUS2Xj/WJdcq3BukBxuyiIRoUOXsCZzilR/DOyNqpjjI3iNb4los5//4aoKPCmLInFnQ3Y42VaimH1298ckEr4tRxsoipsEAANPXZ3p48gGwOf1hp56bTFImvATNwxMViPpqyKcyVaA7tXCBnEk/GEwb6MiroyHbS0VvBz9cZOpJv+8yQnyLndGdibk+hPbGp5iVAIsm28FEF+4FvlYlpBwq9OYuhOCREJvH9CxDMhbOXgwKPno9GyN kohsuke@atlas' > /home/test/.ssh/authorized_keys && \
+    echo 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDagNSCDst/8z5oH9S5QWr+QNdx+haImY0FD3IQvKdD+eWI9zUbBgtoo/yYEbLvpTWiKsgT3Hw1F8mZ+/bd2Uv3lPyoG+TSzrHL4gSal6d1RWVjCOzSosciXVm4gRUvJjKXzaz8dOg+ii9yIrbeONNK0nlDUCAKy5YXSEl0avcPdUDyR3cStL6870SyanxAzktDw0n8xMq4F/alF3PZ002bcZJrmDeNVAwkP+uO2Tf8pN37SU+nApotZmlmZR32xYHnx+/OiQ7gOAVYmgNRMg0Kwh6Q73FcY3ZWCeNHwLnr95LoEAdj3On8Qr62VhGThuQNVCqBc6SeYjArfjijpcW9 jenkins-ci@localhost' >> /home/test/.ssh/authorized_keys && \
+    chown -R test:test /home/test && \
+    chmod 0600 /home/test/.ssh/authorized_keys && \
+    echo "test:test" | chpasswd
+
+RUN echo "KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha1,diffie-hellman-group-exchange-sha1,diffie-hellman-group1-sha1" >> /etc/ssh/sshd_config
+
+RUN echo "MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-ripemd160-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,hmac-ripemd160,umac-128@openssh.com,hmac-md5,hmac-sha1,hmac-sha1-96,hmac-md5-96" >> /etc/ssh/sshd_config
 
 # So it is owned by root and has the permissions vncserver seems to require:
 RUN mkdir /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix/
@@ -7,8 +28,19 @@ RUN mkdir /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix/
 # TODO seems this can be picked up from the host, which is unwanted:
 ENV XAUTHORITY /home/jenkins/.Xauthority
 
-USER jenkins
-RUN mkdir /home/jenkins/.vnc && (echo jenkins; echo jenkins) | vncpasswd /home/jenkins/.vnc/passwd
+USER test
+RUN mkdir /home/test/.vnc && (echo testtest; echo testtest) | vncpasswd /home/test/.vnc/passwd
 # Default content includes x-window-manager, which is not installed, plus other stuff we do not need (vncconfig, x-terminal-emulator, etc.):
-RUN touch /home/jenkins/.vnc/xstartup && chmod a+x /home/jenkins/.vnc/xstartup
+RUN touch /home/test/.vnc/xstartup && chmod a+x /home/test/.vnc/xstartup
+
 USER root
+
+ENTRYPOINT ["/usr/sbin/sshd", "-D", "-e"]
+
+# JDK is from Universe
+RUN echo deb http://archive.ubuntu.com/ubuntu precise universe >> /etc/apt/sources.list
+RUN apt-get install --no-install-recommends -y software-properties-common
+RUN add-apt-repository ppa:openjdk-r/ppa
+RUN apt-get update
+RUN apt-get install --no-install-recommends -y openjdk-8-jdk openjdk-7-jdk curl wget ant maven
+

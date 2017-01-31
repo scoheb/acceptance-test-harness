@@ -24,40 +24,11 @@
 
 package org.jenkinsci.test.acceptance.docker.fixtures;
 
-import org.jenkinsci.test.acceptance.docker.DockerContainer;
 import org.jenkinsci.test.acceptance.docker.DockerFixture;
-import org.jenkinsci.test.acceptance.plugins.credentials.UserPwdCredential;
-import org.jenkinsci.test.acceptance.plugins.ssh_credentials.SshCredentialDialog;
-import org.jenkinsci.test.acceptance.plugins.ssh_slaves.SshSlaveLauncher;
-import org.jenkinsci.test.acceptance.po.DumbSlave;
-import org.jenkinsci.test.acceptance.po.Jenkins;
-import org.jenkinsci.test.acceptance.po.Slave;
 
 /**
  * A fixture consisting of a Jenkins slave which can run XVNC.
  */
 @DockerFixture(id="xvnc-slave", ports=22)
-public class XvncSlaveContainer extends DockerContainer {
-
-    /**
-     * Attaches the slave to Jenkins.
-     * @param j the server
-     * @return return a configured slave; call {@link Slave#save} after any other customizations to complete; use {@link Slave#waitUntilOnline} if desired
-     */
-    public Slave connect(Jenkins j) {
-        // Some code from SshSlaveController could be applicable here, but looks too tricky to reuse.
-        DumbSlave s = j.slaves.create(DumbSlave.class);
-        SshSlaveLauncher launcher = s.setLauncher(SshSlaveLauncher.class);
-        launcher.host.set(ipBound(22));
-        launcher.port(port(22));
-        SshCredentialDialog dialog = launcher.addCredential();
-        UserPwdCredential sc = dialog.select(UserPwdCredential.class);
-        sc.username.set("jenkins");
-        sc.password.set("jenkins");
-        dialog.add();
-        s.remoteFS.set("/home/jenkins");
-        s.setExecutors(1);
-        return s;
-    }
-
+public class XvncSlaveContainer extends SshdContainer {
 }
