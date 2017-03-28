@@ -48,7 +48,15 @@ public class KerberosContainer extends DynamicDockerContainer {
     static {
         String hostFqdn = null;
         try {
-            hostFqdn = InetAddress.getByAddress(new byte[]{127, 0, 0, 1}).getCanonicalHostName();
+            String jenkins_local_hostname = System.getenv("JENKINS_LOCAL_HOSTNAME");
+            if (jenkins_local_hostname != null && !jenkins_local_hostname.isEmpty()) {
+                // JENKINS_LOCAL_HOSTNAME is set...presumably to an IP address
+                // that is not 127.0.0.1.
+                hostFqdn = InetAddress.getLocalHost().getHostName();
+            } else {
+                // JENKINS_LOCAL_HOSTNAME not set. We use 127.0.0.1
+                hostFqdn = InetAddress.getByAddress(new byte[]{127, 0, 0, 1}).getCanonicalHostName();
+            }
         } catch (UnknownHostException e) {
             e.printStackTrace();
             throw new Error(e);
@@ -143,6 +151,7 @@ public class KerberosContainer extends DynamicDockerContainer {
 
     @Override // TODO Can be replaced by build args that would require more flexible build customization to be implemented
     protected String process(String contents) {
+        System.out.println("Replacing HOST_NAME with " + HOST_FQDN);
         return contents.replace("${HOST_NAME}", HOST_FQDN);
     }
 }
