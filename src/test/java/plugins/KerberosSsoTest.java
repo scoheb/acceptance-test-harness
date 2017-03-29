@@ -59,6 +59,7 @@ import org.openqa.selenium.remote.UnreachableBrowserException;
 import java.io.File;
 import java.io.IOException;
 import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -207,13 +208,15 @@ public class KerberosSsoTest extends AbstractJUnitTest {
         // if JENKINS_LOCAL_HOSTNAME is set, we add this to FF nego uris
         if (jenkins_local_hostname != null && !jenkins_local_hostname.isEmpty()) {
             trustedUris = trustedUris + ", " + jenkins_local_hostname;
-        }
-        try {
-            // we also add Localhost's host name for good measure.
-            trustedUris = trustedUris + ", " + Inet4Address.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-            throw new Error(e);
+            try {
+                // In the case where JENKINS_LOCAL_HOSTNAME is an IP,
+                // we need to add its resolved hostname for auth negociation
+                String hostName = InetAddress.getByName(jenkins_local_hostname).getCanonicalHostName();
+                trustedUris = trustedUris + ", " + hostName;
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+                throw new Error(e);
+            }
         }
         profile.setPreference("network.negotiate-auth.trusted-uris", trustedUris);
         profile.setPreference("network.negotiate-auth.delegation-uris", trustedUris);

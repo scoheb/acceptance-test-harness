@@ -51,8 +51,9 @@ public class KerberosContainer extends DynamicDockerContainer {
             String jenkins_local_hostname = System.getenv("JENKINS_LOCAL_HOSTNAME");
             if (jenkins_local_hostname != null && !jenkins_local_hostname.isEmpty()) {
                 // JENKINS_LOCAL_HOSTNAME is set...presumably to an IP address
-                // that is not 127.0.0.1.
-                hostFqdn = InetAddress.getLocalHost().getHostName();
+                // let's get its hostname. Firefox auth negociation  will try to request
+                // using a resolved hostname.
+                hostFqdn = InetAddress.getByName(jenkins_local_hostname).getCanonicalHostName();
             } else {
                 // JENKINS_LOCAL_HOSTNAME not set. We use 127.0.0.1
                 hostFqdn = InetAddress.getByAddress(new byte[]{127, 0, 0, 1}).getCanonicalHostName();
